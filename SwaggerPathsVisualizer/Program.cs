@@ -9,6 +9,7 @@ class Program
     {
         string? swaggerJsonPath;
         string? outputPath;
+        bool includeHttpMethods = true;
 
         if (args.Length >= 2)
         {
@@ -36,9 +37,26 @@ class Program
             return;
         }
 
+        if (args.Length >= 3)
+        {
+            if (bool.TryParse(args[2], out bool argIncludeHttpMethods))
+            {
+                includeHttpMethods = argIncludeHttpMethods;
+            }
+            else if (args[2].Equals("y", StringComparison.OrdinalIgnoreCase) || args[2].Equals("yes", StringComparison.OrdinalIgnoreCase))
+            {
+                includeHttpMethods = true;
+            }
+            else
+            {
+                Console.Error.WriteLine("Invalid value for includeHttpMethods. Use 'true', 'false', 'y', or 'yes'.");
+                return;
+            }
+        }
+
         try
         {
-            VisualizeSwaggerJson(swaggerJsonPath, outputPath);
+            VisualizeSwaggerJson(swaggerJsonPath, outputPath, includeHttpMethods: includeHttpMethods);
         }
         catch (Exception ex)
         {
@@ -46,12 +64,12 @@ class Program
         }
     }
 
-    public static void VisualizeSwaggerJson(string jsonFilePath, string outputFilePath, string diagramDirection = MermaidDiagramDirection.LeftRight)
+    public static void VisualizeSwaggerJson(string jsonFilePath, string outputFilePath, string diagramDirection = MermaidDiagramDirection.LeftRight, bool includeHttpMethods = true)
     {
         try
         {
             string json = File.ReadAllText(jsonFilePath);
-            string mermaidCode = SwaggerMermaidGenerator.GenerateMermaidFromSwagger(json, diagramDirection);
+            string mermaidCode = SwaggerMermaidGenerator.GenerateMermaidFromSwagger(json, diagramDirection, includeHttpMethods);
             File.WriteAllText(outputFilePath, mermaidCode);
             Console.WriteLine($"Mermaid diagram generated successfully at: {outputFilePath}");
         }

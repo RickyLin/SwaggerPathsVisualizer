@@ -7,7 +7,7 @@ namespace SwaggerPathsVisualizer;
 
 public static class SwaggerMermaidGenerator
 {
-    public static string GenerateMermaidFromSwagger(string jsonContent, string diagramDirection = MermaidDiagramDirection.LeftRight)
+    public static string GenerateMermaidFromSwagger(string jsonContent, string diagramDirection = MermaidDiagramDirection.LeftRight, bool includeHttpMethods = true)
     {
         var openApiDocument = JsonDocument.Parse(jsonContent);
         StringBuilder mermaid = new StringBuilder();
@@ -63,27 +63,30 @@ public static class SwaggerMermaidGenerator
             }
             
             // Add HTTP methods as leaf nodes
-            var methods = pathProperty.Value;
-            foreach (var methodProperty in methods.EnumerateObject())
+            if (includeHttpMethods)
             {
-                var method = methodProperty.Name.ToUpper();
-                var operationId = "";
-                if (methodProperty.Value.TryGetProperty("operationId", out var operationIdElement))
+                var methods = pathProperty.Value;
+                foreach (var methodProperty in methods.EnumerateObject())
                 {
-                    operationId = operationIdElement.GetString();
+                    var method = methodProperty.Name.ToUpper();
+                    var operationId = "";
+                    if (methodProperty.Value.TryGetProperty("operationId", out var operationIdElement))
+                    {
+                        operationId = operationIdElement.GetString();
+                    }
+                    else if (methodProperty.Value.TryGetProperty("summary", out var summaryElement))
+                    {
+                        operationId = summaryElement.GetString();
+                    }
+                    
+                    var endpointName = $"{currentPath}|{method}|{operationId}";
+                    string methodNodeId = $"node{nodeCounter++}";
+                    nodeIds[endpointName] = methodNodeId;
+                    
+                    // Use different styling for method nodes
+                    mermaid.AppendLine($"    {methodNodeId}[\"{method} | {operationId}\"]");
+                    mermaid.AppendLine($"    {nodeIds[currentPath]} --> {methodNodeId}");
                 }
-                else if (methodProperty.Value.TryGetProperty("summary", out var summaryElement))
-                {
-                    operationId = summaryElement.GetString();
-                }
-                
-                var endpointName = $"{currentPath}|{method}|{operationId}";
-                string methodNodeId = $"node{nodeCounter++}";
-                nodeIds[endpointName] = methodNodeId;
-                
-                // Use different styling for method nodes
-                mermaid.AppendLine($"    {methodNodeId}[\"{method} | {operationId}\"]");
-                mermaid.AppendLine($"    {nodeIds[currentPath]} --> {methodNodeId}");
             }
         }
         
